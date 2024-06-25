@@ -1,4 +1,4 @@
-import {useState} from "react";
+import {useEffect, useState} from "react";
 
 const tempMovieData = [{
     imdbID: "tt1375666",
@@ -36,21 +36,58 @@ const tempWatchedData = [{
 },];
 
 const average = (arr) => arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
-
+const KEY = "a5c6ca33";
+const tempquery = "interstellar";
 export default function App() {
-    const [movies, setMovies] = useState(tempMovieData);
+    const [movies, setMovies] = useState([]);
     const [watched, setWatched] = useState(tempWatchedData);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [query, setQuery] = useState("");
+
+    function handleSubmit() {
+        async function fetchMovieData() {
+            try {
+                //Set Loading State and Error State
+                setIsLoading(true);
+                setError("");
+
+                //Fetch Data from the API
+                const res = await fetch(`http://www.omdbapi.com/?apikey=${KEY}&s=${query}`);
+                const data = await res.json();
+
+                //Throw Errors
+                if(!res.ok) throw new Error("Something went wrong fetching the movies");
+                if(data.Response === "False") throw new Error("Movie not found");
+
+                //Assign Data to the Movies
+                setMovies(data.Search);
+
+                //Set Loading State
+                setIsLoading(false);
+            } catch(err) {
+                console.log(err);
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        fetchMovieData();
+    }
+
     return (<>
         <NavBar>
             <Logo/>
-            <Search/>
+            <Search query={query} setQuery={setQuery} onSubmit={handleSubmit}/>
             <QueryResults movies={movies}/>
         </NavBar>
 
         <Main>
 
             <Box>
-                <MovieList movies={movies}/>
+                {!isLoading && !error && < MovieList movies={movies}/>}
+                {isLoading && <Loader/>}
+                {error ? <ErrorMessage message={error}/> : null}
             </Box>
 
             <Box>
@@ -59,7 +96,20 @@ export default function App() {
             </Box>
 
         </Main>
-    </>);
+    </>)
+        ;
+}
+
+function Loader() {
+    return (
+        <p className={"loader"}>Loading</p>
+    )
+}
+
+function ErrorMessage({message}) {
+    return (
+        <p className={"error"}>{message}🤬</p>
+    )
 }
 
 function NavBar({children}) {
@@ -75,35 +125,6 @@ function QueryResults({movies}) {
     </p>)
 }
 
-//useEffect(function () {
-//         async function fetchMovies() {
-//             try {
-//                 setIsLoading(true);
-//
-//                 //Fetch the data from the API
-//                 const res = await fetch(`http://www.omdbapi.com/?apikey=${KEY}&s=${query}`);
-//                 const data = await res.json();
-//
-//                 //Error Handling
-//                 if (!res.ok) throw new Error("Something went wrong fetching the data");
-//                 if (data.Response === "False") throw new Error("Movie not found");
-//                 console.log(data);
-//
-//                 //Set the States
-//                 setMovies(data.Search);
-//                 setIsLoading(false);
-//
-//             } catch (err) {
-//                 console.error(err);
-//                 setError(err.message);
-//             } finally {
-//                 setIsLoading(false);
-//             }
-//         }
-//
-//         fetchMovies();
-//     }, [])
-
 function Logo() {
     return (<div className="logo">
         <span role="img">🍿</span>
@@ -111,15 +132,18 @@ function Logo() {
     </div>)
 }
 
-function Search() {
-    const [query, setQuery] = useState("");
-    return (<input
+function Search({setQuery, query, onSubmit}) {
+
+    return (
+        <form onSubmit={onSubmit}>
+    <input
         className="search"
         type="text"
         placeholder="Search movies..."
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
-    />)
+        onChange={(e) => setQuery(e.target.value)}/>
+        </form>
+    )
 }
 
 function Main({children}) {
