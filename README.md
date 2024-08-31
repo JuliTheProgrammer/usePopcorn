@@ -17,7 +17,7 @@
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/your-username/usepopcorn.git
+   git clone https://github.com/JuliTheProgrammer/usepopcorn.git
    cd usepopcorn
    ```
 
